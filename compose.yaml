@@ -1,0 +1,24 @@
+services:
+  web_chat:
+    image: dash-rag2:latest
+    ports:
+      - "8050:8050"
+      - "8051:8051"
+    command: ["python", "/code/src/dummy_app.py"]
+    volumes:
+      - ./:/code
+      - C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/nike_data/chroma_db:/rag-data/chroma_db
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/ollama_data:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
