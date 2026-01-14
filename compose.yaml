@@ -8,6 +8,9 @@ services:
     volumes:
       - ./:/code
       - C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/nike_data/chroma_db:/rag-data/chroma_db
+    depends_on:
+      - postgres
+      - ollama
 
   ollama:
     image: ollama/ollama:latest
@@ -22,3 +25,21 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+  
+  postgres:
+    image: postgres:18.1-bookworm
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/pg_data:/var/lib/postgresql
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres

@@ -1,7 +1,16 @@
 from dash import html, Input, Output, State, clientside_callback, MATCH, callback, no_update
 from dash_bootstrap_components import Collapse
-from dash_mantine_components import Button, ButtonGroup, TextInput
+from dash_mantine_components import Button, ButtonGroup, TextInput, HoverCard, HoverCardTarget, HoverCardDropdown, Text
 import uuid
+
+from langgraph.checkpoint.postgres import PostgresSaver
+from common import gen_postgres_conn_str
+
+from common import dashgpt_engine, create_alchemy_session
+from orm_models.checkpoint_app_info import CheckpointAppInfo
+
+#TODO: Add delete conversation/thread functionality - https://reference.langchain.com/python/langgraph/checkpoints/#langgraph.checkpoint.postgres.PostgresSaver.delete_thread
+#TODO: Add ability for user to see creation date
 
 class ConversationTagAIO(html.Div):
     
@@ -36,6 +45,18 @@ class ConversationTagAIO(html.Div):
             'aio_id': aio_id        
         }
 
+        delete_btn = lambda aio_id: {
+            'component': 'ConversationTagAIO',
+            'subcomponent': 'delete_btn',
+            'aio_id': aio_id
+        }
+
+        tag_container = lambda aio_id: {
+            'component': 'ConversationTagAIO',
+            'subcomponent': 'tag_container',
+            'aio_id': aio_id
+        }
+
     ids = ids
 
     #Use the conversation id as the aio_id
@@ -48,11 +69,22 @@ class ConversationTagAIO(html.Div):
             children=[self._gen_layout(aio_id)]
         )
 
-    def _gen_layout(self, aio_id: str):
+    def _gen_layout(self, aio_id: str):        
+        with create_alchemy_session(dashgpt_engine) as session:
+            app_info = session.query(CheckpointAppInfo).filter_by(thread_id=aio_id).first()
+            create_on_txt = ''
+            if app_info and app_info.thread_name:
+                button_label = app_info.thread_name
+                create_on_txt = app_info.created_on.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                button_label = aio_id
+            create_txt = f"Created on: {create_on_txt}" if create_on_txt else "Creation date unknown"
+
         return html.Div([
-            ButtonGroup([
-                Button(aio_id, variant='outline', id=self.ids.conversation_btn(aio_id)),
-                Button('Edit', variant='outline', id=self.ids.edit_btn(aio_id))
+            ButtonGroup([                
+                Button(button_label, variant='outline', id=self.ids.conversation_btn(aio_id)),
+                Button('Edit', variant='outline', id=self.ids.edit_btn(aio_id)),
+                Button('Delete', variant='outline', id=self.ids.delete_btn(aio_id))
             ]),
             Collapse([
                 html.Div([
@@ -61,9 +93,10 @@ class ConversationTagAIO(html.Div):
                         id=self.ids.name_input(aio_id)
                     ),
                     Button('Save', variant='outline', id=self.ids.save_name_btn(aio_id))
-                ], className='mt-1 d-flex')                
+                ], className='mt-1 d-flex'),
+                html.Span(create_txt, className='text-muted mt-1')
             ], id=self.ids.edit_collapse(aio_id), is_open=False)
-        ], className='mb-2')
+        ], className='mb-2', id=self.ids.tag_container(aio_id))
     
     clientside_callback(
         """
@@ -83,10 +116,40 @@ class ConversationTagAIO(html.Div):
         Output(ids.edit_collapse(MATCH), 'is_open'),
         Input(ids.save_name_btn(MATCH), 'n_clicks'),
         State(ids.name_input(MATCH), 'value'),
+        State(ids.edit_collapse(MATCH), 'id'),
         prevent_initial_call=True,
     )
-    def update_conversation_name(n_clicks, new_name):
+    def update_conversation_name(n_clicks, new_name, edit_collapse_id):
         if new_name and new_name.strip():
-            #TODO: Will need to persist this to a data store.
-            return new_name.strip(), False
+            cond_new_name = new_name.strip()
+            thread_id = edit_collapse_id['aio_id']
+            with create_alchemy_session(dashgpt_engine) as session:
+                app_info = session.query(CheckpointAppInfo).filter_by(thread_id=thread_id).first()
+                if app_info:
+                    app_info.thread_name = cond_new_name
+                else:
+                    raise Exception("ConversationTagAIO: Unable to find CheckpointAppInfo to update conversation name.")                    
+                session.commit()            
+            return cond_new_name, False
         return no_update, no_update
+    
+    @callback(
+        Output(ids.tag_container(MATCH), 'style'),
+        Input(ids.delete_btn(MATCH), 'n_clicks'),
+        State(ids.delete_btn(MATCH), 'id'),
+        prevent_initial_call=True,
+    )
+    def delete_conversation(_, del_btn_id):
+        thread_id = del_btn_id['aio_id']
+        with PostgresSaver.from_conn_string(gen_postgres_conn_str(False)) as checkpointer:
+            checkpointer.delete_thread(thread_id)
+
+        with create_alchemy_session(dashgpt_engine) as session:
+            app_info = session.query(CheckpointAppInfo).filter_by(thread_id=thread_id).first()
+            if app_info:
+                session.delete(app_info)
+                session.commit()
+            else:
+                raise Exception("ConversationTagAIO: Unable to find CheckpointAppInfo to delete conversation.")
+
+        return {'display': 'none'} #Hide the button after deletion

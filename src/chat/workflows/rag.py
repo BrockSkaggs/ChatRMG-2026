@@ -6,6 +6,7 @@ from langgraph.graph import MessagesState, StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from typing import Literal
 
+from chat_persist import gen_checkpointer
 from common import base_ollama_url
 from output_models.grade_documents import GradeDocuments
 from prompts import GRADE_PROMPT, REWRITE_PROMPT, GENERATE_PROMPT
@@ -30,7 +31,7 @@ def retrieve_docs(query: str) -> str:
     return "\n\n".join([doc.page_content for doc in docs])
 
 
-response_model = init_chat_model('qwen3:8b', model_provider='ollama', temperature=0, base_url=base_ollama_url, reasoning=True)
+response_model = init_chat_model('qwen3:8b', model_provider='ollama', temperature=0, base_url=base_ollama_url)
 
 def generate_query_or_respond(state: MessagesState):
     """Call the model to generate a response based on the current state.  Given the question,
@@ -101,4 +102,4 @@ workflow.add_conditional_edges(
 
 workflow.add_edge("generate_answer", END)
 workflow.add_edge("rewrite_question", "generate_query_or_respond")
-graph = workflow.compile()
+graph = workflow.compile(checkpointer=gen_checkpointer(False))

@@ -2,9 +2,11 @@ from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import ToolNode
 from langgraph.prebuilt import tools_condition
-from langgraph.checkpoint.memory import MemorySaver #TODO: Will need to switch to PostgresSaver for production
+# from langgraph.checkpoint.memory import MemorySaver #TODO: Will need to switch to PostgresSaver for production
 
+from chat_persist import gen_checkpointer
 from common import base_ollama_url
+
 
 def multiply(a:int, b:int) -> int:
     """Multiply a and b.
@@ -15,7 +17,6 @@ def multiply(a:int, b:int) -> int:
     """
     return a*b
 
-memory = MemorySaver()
 llm = ChatOllama(model='qwen3:8b', base_url=base_ollama_url, reasoning=True)
 llm_with_tools = llm.bind_tools([multiply])
 
@@ -33,4 +34,10 @@ builder.add_conditional_edges(
     tools_condition
 )
 builder.add_edge("tools", END)
-graph = builder.compile(checkpointer=memory)
+
+#Original
+# memory = MemorySaver()
+# graph = builder.compile(checkpointer=memory)
+
+checkpointer = gen_checkpointer(False)
+graph = builder.compile(checkpointer=checkpointer)

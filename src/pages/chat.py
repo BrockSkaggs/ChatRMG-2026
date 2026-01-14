@@ -16,7 +16,8 @@ from dash import (
     MATCH,
     no_update
 )
-import time
+
+import datetime as dt
 import random
 import json
 import dash_bootstrap_components as dbc
@@ -63,6 +64,8 @@ from layout.information_ui import generate_information_modal
 from aio.chat_settings_aio import ChatSettingsAIO
 from aio.conversation_tag_aio import ConversationTagAIO
 
+from common import create_alchemy_session, dashgpt_engine
+from orm_models.checkpoint_app_info import CheckpointAppInfo
 
 load_dotenv(find_dotenv())
 
@@ -225,8 +228,20 @@ def add_chat_card(n_clicks, user_prompt, chat_history,
 
     def inspect_conversation_div(conversation_id: str, conversations: list) -> str:
         patch_div = Patch()
-        if len(conversations) == 0 or conversations[0]['props']['id'].replace('ConversationTagAIO','') != conversation_id:
+
+        existing_conv_ids = [conv['props']['id'].replace('ConversationTagAIO','') for conv in conversations]
+        if len(conversations) == 0 or conversation_id not in existing_conv_ids:
             patch_div.prepend(ConversationTagAIO(conversation_id))
+            #Add to db
+            with create_alchemy_session(dashgpt_engine) as session:
+                app_info = CheckpointAppInfo(
+                    thread_id=conversation_id,
+                    thread_name=conversation_id,
+                    user_name='brocks', #TODO: Determine based on logged in user
+                    created_on= dt.datetime.now()
+                )
+                session.add(app_info)
+                session.commit()
             return patch_div
         return no_update
     
@@ -483,14 +498,25 @@ def format_chat_history(
 # a call back that takes settings-button as input and outputs is_open to settings-backdrop offcanvas
 @callback(
     Output("settings-offcanvas", "is_open", allow_duplicate=True),
+    Output(ChatSettingsAIO.ids.conversation_div("settings-aio"), "children", allow_duplicate=True),
     Input("settings-button", "n_clicks"),
     State("settings-offcanvas", "is_open"),
     prevent_initial_call=True,
 )
 def toggle_settings_offcanvas(n, is_open):
     if n:
-        return not is_open
-    return is_open
+        conv_div_content = None
+        if not is_open:
+            #Opening the offcanvas, so we need to update the conversation div
+            with create_alchemy_session(dashgpt_engine) as session:
+                app_infos = session.query(CheckpointAppInfo).all() #TODO: Filter by logged in user
+                conv_div_content = []
+                for app_info in app_infos:
+                    conv_div_content.append(
+                        ConversationTagAIO(aio_id=app_info.thread_id)
+                    )
+        return not is_open, conv_div_content
+    return is_open, ''
 
 
 # cllback to reset the conversation history
@@ -499,10 +525,11 @@ def toggle_settings_offcanvas(n, is_open):
     Output("conversation-id", "data", allow_duplicate=True),
     Output("raw-chat-history", "data", allow_duplicate=True),
     Input("new-prompt-button", "n_clicks"),
+    Input(ConversationTagAIO.ids.delete_btn(ALL), 'n_clicks'),
     prevent_initial_call=True,
 )
-def clear_chat_history(n_clicks):
-    if n_clicks:
+def clear_chat_history(n_clicks, delete_btn_clicks):
+    if n_clicks or ctx.triggered_id['subcomponent'] == 'delete_btn':
         new_conversation_id = str(uuid.uuid4())
         logger.debug("New conversation id: " + new_conversation_id)
         return [], new_conversation_id , '{"chat_history": []}'
