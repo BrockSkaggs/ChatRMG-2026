@@ -1,4 +1,5 @@
-from sqlalchemy.engine import URL, create_engine, Connection
+import datetime as dt
+from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import sessionmaker
 from typing import Optional
 
@@ -26,3 +27,6 @@ def create_alchemy_session(engine):
     Session = sessionmaker()
     Session.configure(bind=engine)
     return Session()
+
+def get_central_time(utc_time: dt.datetime) -> dt.datetime:
+    return utc_time + dt.timedelta(hours=-6)

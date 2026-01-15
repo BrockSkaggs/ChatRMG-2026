@@ -6,7 +6,7 @@ import uuid
 from langgraph.checkpoint.postgres import PostgresSaver
 from common import gen_postgres_conn_str
 
-from common import dashgpt_engine, create_alchemy_session
+from common import dashgpt_engine, create_alchemy_session, get_central_time
 from orm_models.checkpoint_app_info import CheckpointAppInfo
 
 #TODO: Add delete conversation/thread functionality - https://reference.langchain.com/python/langgraph/checkpoints/#langgraph.checkpoint.postgres.PostgresSaver.delete_thread
@@ -75,7 +75,7 @@ class ConversationTagAIO(html.Div):
             create_on_txt = ''
             if app_info and app_info.thread_name:
                 button_label = app_info.thread_name
-                create_on_txt = app_info.created_on.strftime("%Y-%m-%d %H:%M:%S")
+                create_on_txt = app_info.created_on_local.strftime("%Y-%m-%d %H:%M:%S")
             else:
                 button_label = aio_id
             create_txt = f"Created on: {create_on_txt}" if create_on_txt else "Creation date unknown"
