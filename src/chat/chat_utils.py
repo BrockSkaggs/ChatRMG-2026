@@ -66,7 +66,7 @@ def stream_send_messages(prompt: List[dict], model_select: str, conversation_id:
         return multiply_tool.graph.stream({'messages': prompt}, stream_mode='messages', config=config)
     elif model_select == 'nike-rag':
         # prompt = ['What is the Jordan brand?']
-        return rag.graph.stream({'messages': prompt}, stream_mode='messages')
+        return rag.graph.stream({'messages': prompt}, stream_mode='messages', config=config)
 
 def get_relevant_documents(
     user_prompt,
@@ -197,6 +197,6 @@ def recover_chat_history(model_select:str, conversation_id: str) -> List[StateSn
         # state_hist = list(multiply_tool.graph.get_state_history(config))   #Gets all states in history
         latest_state = multiply_tool.graph.get_state(config) #Gets only latest state in history
     elif model_select == 'nike-rag':
-        raise NotImplementedError("Recover chat history not implemented for nike-expert model yet.")
+        latest_state = rag.graph.get_state(config)
     
     return latest_state.values['messages']

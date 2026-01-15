@@ -559,10 +559,12 @@ def switch_chat_history(clicks, model: str):
             chat_history.append(generate_user_textbox(msg.text))
             continue
         if msg.type == 'ai': #TODO: 12/31/25 - May have trouble with multiple tool calls in a row.
-            active_text = msg.text.strip().replace('<think>','').replace('</think>','')
-            if i+ 1 <= len(messages) and messages[i+1].type == 'tool':
-                active_text += f"\n{messages[i+1].text}"
-            chat_history.append(generate_ai_textbox(None, active_text))
+            active_text = msg.text.strip()
+            reasoning_text = msg.additional_kwargs.get('reasoning_content', None)
+            cond_text = active_text if reasoning_text is None else f"{reasoning_text}\n\n{active_text}"
+            if i < len(messages) -1 and i+ 1 <= len(messages) and messages[i+1].type == 'tool':
+                cond_text += f"\n{messages[i+1].text}"
+            chat_history.append(generate_ai_textbox(None, cond_text))
 
     return chat_history, conversation_id
 

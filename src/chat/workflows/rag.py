@@ -1,6 +1,6 @@
 #Reference: https://docs.langchain.com/oss/python/langgraph/agentic-rag
 from langchain_core.tools import tool
-from langchain_classic.chat_models import init_chat_model
+from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 from langgraph.graph import MessagesState, StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -24,6 +24,9 @@ vector_store = Chroma(
 
 retriever = vector_store.as_retriever()
 
+response_model = ChatOllama(model='qwen3:8b', temperature=0, base_url=base_ollama_url, reasoning=True)
+grader_model = ChatOllama(model='qwen3:8b', temperature=0, base_url=base_ollama_url, reasonsing=True)
+
 @tool
 def retrieve_docs(query: str) -> str:
     """Search and return information about the Nike corporation."""
@@ -31,7 +34,7 @@ def retrieve_docs(query: str) -> str:
     return "\n\n".join([doc.page_content for doc in docs])
 
 
-response_model = init_chat_model('qwen3:8b', model_provider='ollama', temperature=0, base_url=base_ollama_url)
+
 
 def generate_query_or_respond(state: MessagesState):
     """Call the model to generate a response based on the current state.  Given the question,
@@ -40,8 +43,6 @@ def generate_query_or_respond(state: MessagesState):
         response_model.bind_tools([retrieve_docs]).invoke(state['messages'])
     )
     return {'messages':[response]}
-
-grader_model = init_chat_model('qwen3:8b', model_provider='ollama', temperature=0, base_url=base_ollama_url)
 
 def grade_documents(state: MessagesState) -> Literal['generate_answer', 'rewrite_question']:
     """Determine whether the retrieved documents are relevant to the question."""
