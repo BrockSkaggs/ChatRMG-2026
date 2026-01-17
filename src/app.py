@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 flask_server = Flask(__name__)
 
-dash_app = dash.Dash(
+dash_app = dash.Dash( 
     __name__,
     use_pages=True,
     server=flask_server,

@@ -65,6 +65,7 @@ from aio.chat_settings_aio import ChatSettingsAIO
 from aio.conversation_tag_aio import ConversationTagAIO
 
 from common import create_alchemy_session, dashgpt_engine
+from chat.chat_utils import recover_chat_history
 from orm_models.checkpoint_app_info import CheckpointAppInfo
 
 load_dotenv(find_dotenv())
@@ -315,7 +316,7 @@ def update_context(
 
     # change the text in the last card to "Generating answer..."
     last_card = chat_history_cards[-1]
-    last_card["props"]["children"][0]["props"]["children"]["props"][
+    last_card["props"]["children"][0]["props"]["children"][0]["props"][
         "children"
     ] = "✨Generating answer..."
     chat_history_cards[-1] = last_card
@@ -398,15 +399,17 @@ def streaming_chat():
     Output("current-ai-message-id", "data", allow_duplicate=True),
     Input("last-generated-response", "data"),
     State("chat-history", "children"),
-    State("complete-context", "data"),
     State("raw-chat-history", "data"),
+    State("conversation-id", "data"),
+    State(ChatSettingsAIO.ids.model_select("settings-aio"), "value"),
     prevent_initial_call=True,
 )
 def format_chat_history(
     last_generated_response,
     chat_history,
-    complete_context_dict,
-    raw_chat_history
+    raw_chat_history,
+    conversation_id,
+    model_select
 ):
     raw_chat_dict = json.loads(raw_chat_history)
 
@@ -418,9 +421,6 @@ def format_chat_history(
         logger.debug("Preventing format_chat_history callback from being called.")
         raise dash.exceptions.PreventUpdate
 
-    # convert complete_context to a list of Document objects
-    complete_context_docs = convert_dict_to_documents(complete_context_dict)
-
     style = {
         "max-width": "80%",
         "width": "max-content",
@@ -431,9 +431,20 @@ def format_chat_history(
         "margin-right": "auto",
     }
 
-    # convert the html to markdown, without this the returned raw text loses it's
-    # formatting/bullet points etc.
-    last_generated_response_md = markdownify(last_generated_response)
+    chat_state = recover_chat_history(model_select, conversation_id)
+    latest_msgs = []
+    complete_context_docs = []
+    for msg in reversed(chat_state): 
+        if msg.type == 'human':
+            break
+        latest_msgs.insert(0, msg)
+        if msg.type == 'tool':
+            docs = json.loads(msg.content)
+            if type(docs) == list:
+                complete_context_docs.extend(docs)
+
+    #TODO: Will need a better way to filter out data from other tool calls
+    last_generated_response_md = '\n\n'.join([msg.text for msg in latest_msgs if msg.name != 'retrieve_docs'])
 
     message_id = str(uuid.uuid4())
 
@@ -551,20 +562,31 @@ def switch_chat_history(clicks, model: str):
     if messages is None:
         raise dash.exceptions.PreventUpdate
     
-    chat_history = [] 
+    chat_history = []
+    complete_context_docs = []
     for i, msg in enumerate(messages):
         if msg.type == 'system':
             continue
         if msg.type == 'human':                
             chat_history.append(generate_user_textbox(msg.text))
+            complete_context_docs = []
             continue
+        if msg.type == 'tool':
+            docs = json.loads(msg.content)
+            if type(docs) == list:
+                complete_context_docs.extend(docs)
+            else:
+                ai_textbox = generate_ai_textbox(None, msg.text)
+                chat_history.append(ai_textbox)
         if msg.type == 'ai': #TODO: 12/31/25 - May have trouble with multiple tool calls in a row.
-            active_text = msg.text.strip()
-            reasoning_text = msg.additional_kwargs.get('reasoning_content', None)
-            cond_text = active_text if reasoning_text is None else f"{reasoning_text}\n\n{active_text}"
-            if i < len(messages) -1 and i+ 1 <= len(messages) and messages[i+1].type == 'tool':
-                cond_text += f"\n{messages[i+1].text}"
-            chat_history.append(generate_ai_textbox(None, cond_text))
+            cond_text = msg.text.strip()
+            if cond_text.strip() != '':
+                ai_textbox = generate_ai_textbox(None, cond_text)
+                if len(complete_context_docs) > 0:
+                    ai_textbox.children[0].children.append(
+                        generate_related_content_accordion(complete_context_docs, str(uuid.uuid4()))
+                    )
+                chat_history.append(ai_textbox)
 
     return chat_history, conversation_id
 

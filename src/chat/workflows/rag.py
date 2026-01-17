@@ -4,7 +4,7 @@ from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 from langgraph.graph import MessagesState, StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
-from typing import Literal
+from typing import Literal, List
 
 from chat_persist import gen_checkpointer
 from common import base_ollama_url
@@ -28,13 +28,12 @@ response_model = ChatOllama(model='qwen3:8b', temperature=0, base_url=base_ollam
 grader_model = ChatOllama(model='qwen3:8b', temperature=0, base_url=base_ollama_url, reasonsing=True)
 
 @tool
-def retrieve_docs(query: str) -> str:
+def retrieve_docs(query: str) -> List[dict]:
     """Search and return information about the Nike corporation."""
     docs = retriever.invoke(query)
-    return "\n\n".join([doc.page_content for doc in docs])
-
-
-
+    return [{'page_content': doc.page_content,
+             'metadata': doc.metadata} 
+             for doc in docs]
 
 def generate_query_or_respond(state: MessagesState):
     """Call the model to generate a response based on the current state.  Given the question,

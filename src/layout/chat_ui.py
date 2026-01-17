@@ -107,7 +107,7 @@ def generate_ai_textbox(output_id, text=""):
     para = html.P(text, id=output_id) if output_id is not None else html.P(text)
 
     textbox = dbc.Card(
-        para,
+        [para],
         style=style,
         body=True,
         color="lightblue",
@@ -125,9 +125,9 @@ def generate_related_content_accordion(unique_docs, id="related-source-accordion
             html.Div(
                 [
                     html.Hr(),
-                    html.Strong(f"Source: {related_doc.metadata.get('source', 'Unknown Source')} Page: {related_doc.metadata.get('page', 'N/A')}"),
+                    html.Strong(f"Source: {related_doc['metadata'].get('source', 'Unknown Source')} Page: {related_doc['metadata'].get('page', 'N/A')}"),
                     html.P(
-                        related_doc.page_content,
+                        related_doc['page_content'],
                         style={"margin-bottom": "0px"},
                     ),
                 ]
