@@ -82,10 +82,10 @@ class ConversationTagAIO(html.Div):
 
         return html.Div([
             ButtonGroup([                
-                Button(button_label, variant='outline', id=self.ids.conversation_btn(aio_id)),
-                Button('Edit', variant='outline', id=self.ids.edit_btn(aio_id)),
-                Button('Delete', variant='outline', id=self.ids.delete_btn(aio_id))
-            ]),
+                Button(button_label, variant='outline', id=self.ids.conversation_btn(aio_id), style={'flex':'1'}),
+                Button('Edit', variant='outline', id=self.ids.edit_btn(aio_id), w=80),
+                Button('Delete', variant='outline', id=self.ids.delete_btn(aio_id), w=80)
+            ], w='100%', style={'display':'flex'}),
             Collapse([
                 html.Div([
                     TextInput(
