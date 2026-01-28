@@ -1,5 +1,5 @@
 from orm_models.base import Base
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Boolean
 from common import get_central_time
 
 class CheckpointAppInfo(Base):
@@ -10,7 +10,8 @@ class CheckpointAppInfo(Base):
     thread_name = Column(String(255), nullable=True)
     user_name = Column(String(255), nullable=True)
     created_on = Column(DateTime, nullable=True)
-
+    positive_feedback = Column(Boolean, nullable=True)
+    negative_feedback_note = Column(String, nullable=True)
 
     @property
     def created_on_local(self):

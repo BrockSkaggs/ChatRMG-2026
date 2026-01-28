@@ -3,13 +3,12 @@ import os
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
-from dash import html, dcc
-import re
+from dash import html
+from typing import Literal, Optional
 
 from logs import get_logger
 
 logger = get_logger(__name__)
-
 
 def generate_chat_controls(
     text_input_id="text-prompt", submit_button_id="submit-prompt"
@@ -75,7 +74,6 @@ def generate_chat_controls(
 
     return chat_controls_with_disclaimer
 
-
 def generate_user_textbox(text, name="You"):
     style = {
         "max-width": "80%",
@@ -89,7 +87,6 @@ def generate_user_textbox(text, name="You"):
     style["margin-right"] = 0
 
     return dbc.Card(text, style=style, body=True, color="#228be6", inverse=True)
-
 
 def generate_ai_textbox(output_id, text=""):
     style = {
@@ -148,3 +145,14 @@ def generate_related_content_accordion(unique_docs, id="related-source-accordion
     )
 
     return related_sources
+
+
+def gen_thumbs_btn_gradient(thumb: Literal['up', 'down'], is_positive: Optional[bool] = None) -> dmc.Button:
+    neutral = {'from': 'grey', 'to': 'grey'}
+    if is_positive is None:
+        return neutral
+    if thumb == 'up' and is_positive:
+        return {"from": "green", "to": "#32cd32"}
+    elif thumb == 'down' and not is_positive:
+        return {"from": "red", "to": "#dc143c"}
+    return neutral
