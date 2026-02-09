@@ -54,10 +54,6 @@ from layout.chat_ui import (
     generate_chat_controls,
     generate_related_content_accordion,
 )
-from layout.feedback_ui import (
-    generate_feedback_modal,
-    generate_thumbs_up_down_buttons,
-)
 
 from layout.settings_ui import generate_settings_offcanvas
 from layout.information_ui import generate_information_modal
@@ -232,7 +228,6 @@ def add_chat_card(n_clicks, user_prompt, chat_history,
 
         existing_conv_ids = [conv['props']['id'].replace('ConversationTagAIO','') for conv in conversations]
         if len(conversations) == 0 or conversation_id not in existing_conv_ids:
-            patch_div.prepend(ConversationTagAIO(conversation_id))
             #Add to db
             with create_alchemy_session(dashgpt_engine) as session:
                 app_info = CheckpointAppInfo(
@@ -243,6 +238,7 @@ def add_chat_card(n_clicks, user_prompt, chat_history,
                 )
                 session.add(app_info)
                 session.commit()
+            patch_div.prepend(ConversationTagAIO(conversation_id))
             return patch_div
         return no_update
     
@@ -462,30 +458,6 @@ def format_chat_history(
     )
 
     card_children.append(related_source_accordion)
-
-    # --------------- ADD FEEDBACK BUTTONS --------------- #
-    feedback_modal = generate_feedback_modal(message_id=message_id)
-    thumbs_up_button, thumbs_down_button = generate_thumbs_up_down_buttons(
-        message_id=message_id,
-    )
-
-    # put the thumbsup/down buttons on the right hand edge of the card and the card on the right
-    card_children.append(
-        html.Div(
-            [
-                html.Div(),
-                html.Div(
-                    [thumbs_up_button, thumbs_down_button, feedback_modal],
-                    style={"display": "flex", "flex-wrap": "nowrap"},
-                ),
-            ],
-            style={
-                "display": "flex",
-                "justify-content": "space-between",
-                "align-items": "center",
-            },
-        )
-    )
 
     # create a new dbc.Card to replace the one streamed to
     card = dbc.Card(

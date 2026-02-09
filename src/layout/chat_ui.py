@@ -146,7 +146,6 @@ def generate_related_content_accordion(unique_docs, id="related-source-accordion
 
     return related_sources
 
-
 def gen_thumbs_btn_gradient(thumb: Literal['up', 'down'], is_positive: Optional[bool] = None) -> dmc.Button:
     neutral = {'from': 'grey', 'to': 'grey'}
     if is_positive is None:
