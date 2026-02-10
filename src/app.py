@@ -23,7 +23,7 @@ dash_app = dash.Dash(
         os.path.join("src", "assets", "styles.css"),
         "https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap",
     ],
-    title="DashGPT",
+    title="ChatRMG",
     suppress_callback_exceptions=True,
 )
 

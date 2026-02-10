@@ -50,7 +50,7 @@ def generate_chat_controls(
     )
 
     disclaimer_text = html.P(
-        "Disclaimer: Information provided by DashGPT may be inaccurate; verify all information before use.",
+        "Disclaimer: Information provided by ChatRMG may be inaccurate; verify all information before use.",
         style={
             "font-size": "0.7rem",
             "font-style": "italic",

@@ -130,7 +130,7 @@ def layout():
             ),
             # put a text object with name in the top left
             html.H4(
-                "DashGPT",
+                "ChatRMG",
                 style={
                     "position": "absolute",
                     "top": "15px",
