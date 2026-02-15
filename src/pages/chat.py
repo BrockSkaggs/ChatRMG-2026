@@ -60,7 +60,7 @@ from layout.information_ui import generate_information_modal
 from aio.chat_settings_aio import ChatSettingsAIO
 from aio.conversation_tag_aio import ConversationTagAIO
 
-from common import create_alchemy_session, dashgpt_engine
+from common import create_alchemy_session, chatrmg_engine
 from chat.chat_utils import recover_chat_history
 from orm_models.checkpoint_app_info import CheckpointAppInfo
 
@@ -229,7 +229,7 @@ def add_chat_card(n_clicks, user_prompt, chat_history,
         existing_conv_ids = [conv['props']['id'].replace('ConversationTagAIO','') for conv in conversations]
         if len(conversations) == 0 or conversation_id not in existing_conv_ids:
             #Add to db
-            with create_alchemy_session(dashgpt_engine) as session:
+            with create_alchemy_session(chatrmg_engine) as session:
                 app_info = CheckpointAppInfo(
                     thread_id=conversation_id,
                     thread_name=conversation_id,
@@ -491,7 +491,7 @@ def toggle_settings_offcanvas(n, is_open):
         conv_div_content = None
         if not is_open:
             #Opening the offcanvas, so we need to update the conversation div
-            with create_alchemy_session(dashgpt_engine) as session:
+            with create_alchemy_session(chatrmg_engine) as session:
                 app_infos = session.query(CheckpointAppInfo).all() #TODO: Filter by logged in user
                 conv_div_content = []
                 for app_info in app_infos:

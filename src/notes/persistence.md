@@ -2,11 +2,15 @@
 
 Below is the table definition for a Postgres table to hold application information related to a thread/conversation.
 ```
-CREATE TABLE checkpoint_app_info(
-	thread_id text primary key,
-	thread_name varchar(255),
-	user_name varchar(255),
-	created_on timestamp with time zone
+CREATE TABLE IF NOT EXISTS public.checkpoint_app_info
+(
+    thread_id text COLLATE pg_catalog."default" NOT NULL,
+    thread_name character varying(255) COLLATE pg_catalog."default",
+    user_name character varying(255) COLLATE pg_catalog."default",
+    created_on timestamp with time zone,
+    positive_feedback boolean,
+    negative_feedback_note text COLLATE pg_catalog."default",
+    CONSTRAINT checkpoint_app_info_pkey PRIMARY KEY (thread_id)
 )
 ```
 

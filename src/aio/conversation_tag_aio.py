@@ -7,7 +7,7 @@ import uuid
 from langgraph.checkpoint.postgres import PostgresSaver
 from common import gen_postgres_conn_str
 
-from common import dashgpt_engine, create_alchemy_session, get_central_time
+from common import chatrmg_engine, create_alchemy_session, get_central_time
 from layout.chat_ui import gen_thumbs_btn_gradient
 from orm_models.checkpoint_app_info import CheckpointAppInfo
 
@@ -96,7 +96,7 @@ class ConversationTagAIO(html.Div):
         )
 
     def _gen_layout(self, aio_id: str):        
-        with create_alchemy_session(dashgpt_engine) as session:
+        with create_alchemy_session(chatrmg_engine) as session:
             app_info = session.query(CheckpointAppInfo).filter_by(thread_id=aio_id).first()
             create_on_txt = ''
             if app_info and app_info.thread_name:
@@ -199,7 +199,7 @@ class ConversationTagAIO(html.Div):
     def update_conversation(n_clicks, new_name, edit_collapse_id, 
                                  thumbs_up_gradient, thumbs_down_gradient, negative_feedback):
         cond_new_name = no_update
-        with create_alchemy_session(dashgpt_engine) as session:
+        with create_alchemy_session(chatrmg_engine) as session:
             thread_id = edit_collapse_id['aio_id']
             app_info = session.query(CheckpointAppInfo).filter_by(thread_id=thread_id).first()
             if app_info:
@@ -232,7 +232,7 @@ class ConversationTagAIO(html.Div):
         with PostgresSaver.from_conn_string(gen_postgres_conn_str(False)) as checkpointer:
             checkpointer.delete_thread(thread_id)
 
-        with create_alchemy_session(dashgpt_engine) as session:
+        with create_alchemy_session(chatrmg_engine) as session:
             app_info = session.query(CheckpointAppInfo).filter_by(thread_id=thread_id).first()
             if app_info:
                 session.delete(app_info)

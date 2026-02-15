@@ -1,13 +1,20 @@
 services:
   web_chat:
-    image: dash-rag2:latest
+    image: chat_rmg_2026:latest
+    environment:
+      DB_HOSTNAME: ${DB_HOSTNAME}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      USER_NAME: ${USER_NAME}
+      USER_PWD: ${USER_PWD}
     ports:
       - "8050:8050"
       - "8051:8051"
     command: ["python", "/code/src/dummy_app.py"]
     volumes:
       - ./:/code
-      - C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/nike_data/chroma_db:/rag-data/chroma_db
+      #- C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/nike_data/chroma_db:/rag-data/chroma_db
+      - ${CHROMA_DATA_DIR}:/rag-data/chroma_db
     depends_on:
       - postgres
       - ollama
@@ -17,7 +24,8 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/ollama_data:/data
+      #- C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/ollama_data:/data
+      - ${OLLAMA_DATA_DIR}:/data
     deploy:
       resources:
         reservations:
@@ -29,11 +37,13 @@ services:
   postgres:
     image: postgres:18.1-bookworm
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
-      - C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/pg_data:/var/lib/postgresql
+      #- C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/pg_data:/var/lib/postgresql
+      - ${POSTGRES_DATA_DIR}:/var/lib/postgresql
   pgadmin:
     image: dpage/pgadmin4:latest
     environment:

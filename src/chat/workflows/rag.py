@@ -15,9 +15,10 @@ from prompts import GRADE_PROMPT, REWRITE_PROMPT, GENERATE_PROMPT
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-embedding_function = HuggingFaceEmbeddings(model="sentence-transformers/all-MiniLM-L6-v2")
+embedding_function = HuggingFaceEmbeddings(model="sentence-transformers/all-mpnet-base-v2")
 vector_store = Chroma(
-    collection_name="nike-sentence-transformers",
+    #collection_name="nike-sentence-transformers",
+    collection_name="chat_rmg",
     embedding_function=embedding_function,
     persist_directory="/rag-data/chroma_db",
 )
@@ -29,7 +30,7 @@ grader_model = ChatOllama(model='qwen3:8b', temperature=0, base_url=base_ollama_
 
 @tool
 def retrieve_docs(query: str) -> List[dict]:
-    """Search and return information about the Nike corporation."""
+    """Search and return information about information technology policies and procedures."""
     docs = retriever.invoke(query)
     return [{'page_content': doc.page_content,
              'metadata': doc.metadata} 

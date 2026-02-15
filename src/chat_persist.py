@@ -3,7 +3,7 @@ import psycopg
 from psycopg.rows import dict_row
 from typing import Optional
 
-from common import gen_postgres_conn_str, dashgpt_engine
+from common import gen_postgres_conn_str, chatrmg_engine
 
 def run_db_setup():
     with PostgresSaver.from_conn_string(gen_postgres_conn_str()) as checkpointer:
@@ -14,7 +14,7 @@ def run_db_setup():
 def gen_checkpointer(use_sqlalchemy_engine: Optional[bool] = True):
     conn = None
     if use_sqlalchemy_engine:
-        conn = dashgpt_engine.connect()
+        conn = chatrmg_engine.connect()
     else:
         conn = psycopg.connect(gen_postgres_conn_str(False), autocommit=True, row_factory=dict_row)    
     return PostgresSaver(conn)

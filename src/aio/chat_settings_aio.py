@@ -34,8 +34,7 @@ class ChatSettingsAIO(html.Div):
             Select(
                 id=self.ids.model_select(aio_id),
                 options=[
-                    {"label": "Nike Expert", "value": "nike-expert"},
-                    {"label": "Nike RAG", "value": "nike-rag"},
+                    {"label": "Information Technology", "value": "it-rag"},
                     {"label": "Multiplier", "value": "multiplier"}
                 ],
                 value='multiplier',
