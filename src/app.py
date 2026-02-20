@@ -19,8 +19,9 @@ dash_app = dash.Dash(
     use_pages=True,
     server=flask_server,
     external_stylesheets=[
-        dbc.themes.BOOTSTRAP,
+        # dbc.themes.BOOTSTRAP,
         os.path.join("src", "assets", "styles.css"),
+        os.path.join("src", "assets", "bootstrap.min.css"),
         "https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap",
     ],
     title="ChatRMG",

@@ -20,7 +20,8 @@ vector_store = Chroma(
     #collection_name="nike-sentence-transformers",
     collection_name="chat_rmg",
     embedding_function=embedding_function,
-    persist_directory="/rag-data/chroma_db",
+    # persist_directory="/rag-data/chroma_db",
+    persist_directory=r"C:\Users\user\Documents\SKAGGS\Projects\ChatRMG-LangGraph\chroma_data"
 )
 
 retriever = vector_store.as_retriever()

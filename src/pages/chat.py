@@ -1,5 +1,3 @@
-import os
-
 import dash
 from dash import (
     html,
@@ -24,7 +22,6 @@ import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 from flask import request, Response
 import uuid
-from markdownify import markdownify
 from dash_iconify import DashIconify
 from dotenv import load_dotenv, find_dotenv
 
@@ -32,20 +29,11 @@ from dotenv import load_dotenv, find_dotenv
 # from dashgpt.logs import get_logger
 from logs import get_logger
 
-from data.langchain_utils import (
-    convert_documents_to_dict,
-    convert_dict_to_documents,
-)
 from chat.chat_utils import (
     stream_send_messages,
-    #get_relevant_documents,
-    connect_to_vectorstore,
-    convert_documents_to_chat_context,
-    convert_chat_history_to_string,
     recover_chat_history
 )
 from chat.prompts import (
-    generate_user_prompt,
     load_system_prompt,
 )
 from layout.chat_ui import (
@@ -60,7 +48,7 @@ from layout.information_ui import generate_information_modal
 from aio.chat_settings_aio import ChatSettingsAIO
 from aio.conversation_tag_aio import ConversationTagAIO
 
-from common import create_alchemy_session, chatrmg_engine
+from common import create_alchemy_session, chatrmg_engine, determine_user
 from chat.chat_utils import recover_chat_history
 from orm_models.checkpoint_app_info import CheckpointAppInfo
 
@@ -70,135 +58,131 @@ logger = get_logger(__name__)
 
 dash.register_page(__name__, path="/")
 
-# get the langchain vecotr store to use for similarity search
-vector_store = connect_to_vectorstore()
+# Define Layout for the chat messages
+conversation = html.Div(
+    html.Div(id="chat-history", 
+                children=[]
+    ),
+    style={
+        "overflow-y": "auto",
+        "display": "flex",
+        "height": "calc(76vh)",  # adjust this to prevent vertical scrolling on main screen/mobile
+        "flex-direction": "column-reverse",
+        "marginTop": "35px",
+    },
+)
 
+# name="TODO: REMOVE NAME"
 
-def layout():
-    # Define Layout for the chat messages
-    conversation = html.Div(
-        html.Div(id="chat-history", 
-                 children=[]
+settings_offcanvas = generate_settings_offcanvas(
+    settings_offcanvas_id="settings-offcanvas"
+)
+
+information_modal = generate_information_modal(
+    information_modal_id="information-modal"
+)
+
+layout = dbc.Container(
+    [
+        # store the current conversation uuid
+        dcc.Store(id="conversation-id", data=str(uuid.uuid4())),
+        # data store for triggering when a new prompt is submitted and ready for generation
+        dcc.Store(id="new-prompt", data=""),
+        # data store to house the generated response
+        dcc.Store(id="last-generated-response", data=""),
+        # use a store to access the current-context formatted as a string
+        dcc.Store(id="formatted-context", data=""),
+        # store the complete context including metadaata
+        dcc.Store(id="complete-context", data=""),
+        # a store to track the object id of the card that streaming should output text to
+        dcc.Store(id="current-streaming-object-id", data=""),
+        # spot to store the current ai message id
+        dcc.Store(id="current-ai-message-id", data=""),
+        # store the history of the conversation
+        dcc.Store(id="raw-chat-history", data='{"chat_history": []}'),
+        settings_offcanvas,
+        information_modal,
+        dmc.Button(
+            DashIconify(icon="octicon:gear-16"),
+            id="settings-button",
+            variant="filled",
+            color='blue',
+            radius="xl",
+            style={"position": "absolute", "top": "10px", "left": "10px"},
+            # compact=True,
         ),
-        style={
-            "overflow-y": "auto",
-            "display": "flex",
-            "height": "calc(76vh)",  # adjust this to prevent vertical scrolling on main screen/mobile
-            "flex-direction": "column-reverse",
-            "marginTop": "35px",
-        },
-    )
+        # put a text object with name in the top left
+        html.H4(
+            "ChatRMG",
+            style={
+                "position": "absolute",
+                "top": "15px",
+                "left": "70px",
+                "font-family": "Poppins, sans-serif",
+            },
+            id='chat-title-header'
+        ),
+        dmc.HoverCard(
+            withArrow=True,
+            width=200,
+            shadow="md",
+            children=[
+                dmc.Button(
+                    DashIconify(icon="octicon:plus-16"),
+                    id="new-prompt-button",
+                    variant="filled",
+                    color='blue',                            
+                    radius="xl",
+                    style={"position":"absolute", "right":"72px", "top":"10px"}
+                )
+            ],
+            styles={
+                "position": "absolute",
+                "top": "10px",
+                "right": "70px",
+            },
+        ),
+        # put a button right beside the plus with an i in it for information
+        dmc.Button(
+            DashIconify(icon="octicon:info-16"),
+            id="info-button",
+            variant="filled",
+            color='blue',
+            radius="xl",
+            style={
+                "position": "absolute",
+                "top": "10px",
+                "right": "10px",
+            },
+        ),
+        dbc.Row(
+            [
+                dbc.Col(conversation, width=12, lg=8, className="mx-auto"),
+            ],
+            className="my-4",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    children=[
+                        generate_chat_controls(
+                            text_input_id="text-prompt", submit_button_id="submit-prompt"
+                        )
+                    ],
+                    id="input-controls-container",
+                    width=12,
+                    lg=8,
+                    className="mx-auto"
+                ),
+            ],
+            className="my-4",
+        ),
+    ],
+    fluid=True,
+    className="px-0",
+)
 
-    # name="TODO: REMOVE NAME"
 
-    settings_offcanvas = generate_settings_offcanvas(
-        settings_offcanvas_id="settings-offcanvas"
-    )
-
-    information_modal = generate_information_modal(
-        information_modal_id="information-modal"
-    )
-
-    layout = dbc.Container(
-        [
-            # store the current conversation uuid
-            dcc.Store(id="conversation-id", data=str(uuid.uuid4())),
-            # data store for triggering when a new prompt is submitted and ready for generation
-            dcc.Store(id="new-prompt", data=""),
-            # data store to house the generated response
-            dcc.Store(id="last-generated-response", data=""),
-            # use a store to access the current-context formatted as a string
-            dcc.Store(id="formatted-context", data=""),
-            # store the complete context including metadaata
-            dcc.Store(id="complete-context", data=""),
-            # a store to track the object id of the card that streaming should output text to
-            dcc.Store(id="current-streaming-object-id", data=""),
-            # spot to store the current ai message id
-            dcc.Store(id="current-ai-message-id", data=""),
-            # store the history of the conversation
-            dcc.Store(id="raw-chat-history", data='{"chat_history": []}'),
-            settings_offcanvas,
-            information_modal,
-            dmc.Button(
-                DashIconify(icon="octicon:gear-16"),
-                id="settings-button",
-                variant="filled",
-                color='blue',
-                radius="xl",
-                style={"position": "absolute", "top": "10px", "left": "10px"},
-                # compact=True,
-            ),
-            # put a text object with name in the top left
-            html.H4(
-                "ChatRMG",
-                style={
-                    "position": "absolute",
-                    "top": "15px",
-                    "left": "70px",
-                    "font-family": "Poppins, sans-serif",
-                },
-            ),
-            dmc.HoverCard(
-                withArrow=True,
-                width=200,
-                shadow="md",
-                children=[
-                    dmc.Button(
-                        DashIconify(icon="octicon:plus-16"),
-                        id="new-prompt-button",
-                        variant="filled",
-                        color='blue',                            
-                        radius="xl",
-                        style={"position":"absolute", "right":"72px", "top":"10px"}
-                    )
-                ],
-                styles={
-                    "position": "absolute",
-                    "top": "10px",
-                    "right": "70px",
-                },
-            ),
-            # put a button right beside the plus with an i in it for information
-            dmc.Button(
-                DashIconify(icon="octicon:info-16"),
-                id="info-button",
-                variant="filled",
-                color='blue',
-                radius="xl",
-                style={
-                    "position": "absolute",
-                    "top": "10px",
-                    "right": "10px",
-                },
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(conversation, width=12, lg=8, className="mx-auto"),
-                ],
-                className="my-4",
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        children=[
-                            generate_chat_controls(
-                                text_input_id="text-prompt", submit_button_id="submit-prompt"
-                            )
-                        ],
-                        id="input-controls-container",
-                        width=12,
-                        lg=8,
-                        className="mx-auto"
-                    ),
-                ],
-                className="my-4",
-            ),
-        ],
-        fluid=True,
-        className="px-0",
-    )
-
-    return layout
 
 # primary callback for on enter pressed, or submit button pressed creates the user message
 # and the empty AI response card for text to be streamed into, disables submit button and
@@ -340,12 +324,10 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
-
 # if you are creating a multipage app, you won't be able to import app object because of circular imports
 # so unless you create the route in the same file where you define your Dash app
 # you can simply use app = dash.get_app() to get the Dash app instance in any other page
 app = dash.get_app()
-
 
 @app.server.route("/streaming-chat", methods=["POST"])
 def streaming_chat():
@@ -654,3 +636,12 @@ def update_text_prompt(n_clicks):
         return sample_question
     else:
         raise dash.exceptions.PreventUpdate
+    
+
+@callback(
+    Output('chat-title-header', 'children'),
+    Input('chat-title-header', 'style')
+)
+def update_title_for_user(_):
+    auth_user = determine_user(request)
+    return f"ChatRMG | {auth_user}"

@@ -3,7 +3,7 @@ from dash import html
 
 
 dash_app = dash.Dash(__name__)
-
+server = dash_app.server
 
 dash_app.layout = html.Div([
     "Hello World"

@@ -3,8 +3,12 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 from typing import Optional
+from dotenv import load_dotenv
 
-base_ollama_url = "http://ollama:11434"
+load_dotenv()
+
+# base_ollama_url = "http://ollama:11434"
+base_ollama_url = "localhost:11434"
 
 #PostgresSQL
 DB_HOSTNAME = os.environ.get('DB_HOSTNAME')
@@ -31,3 +35,11 @@ def create_alchemy_session(engine):
 
 def get_central_time(utc_time: dt.datetime) -> dt.datetime:
     return utc_time + dt.timedelta(hours=-6)
+
+def determine_user(request):
+    """Determine user who is vieweing."""
+    # user = request.environ.get('REMOTE_USER')
+    user = request.headers.get("X-Iis-WindowsAuthToken")
+    if user is None or request.host.startswith('localhost') or request.host.startswith('127.0.0'):
+        user = 'local-test'
+    return user.lower()
