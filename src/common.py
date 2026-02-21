@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 from typing import Optional
 from dotenv import load_dotenv
+import pickle
 
 load_dotenv()
 
@@ -38,8 +39,12 @@ def get_central_time(utc_time: dt.datetime) -> dt.datetime:
 
 def determine_user(request):
     """Determine user who is vieweing."""
-    # user = request.environ.get('REMOTE_USER')
-    user = request.headers.get("X-Iis-WindowsAuthToken")
+    user = request.environ.get('REMOTE_USER')
     if user is None or request.host.startswith('localhost') or request.host.startswith('127.0.0'):
-        user = 'local-test'
-    return user.lower()
+        return 'local-test'
+    cond_user = user.lower() 
+    if cond_user.startswith('rmg\\'):
+        cond_user = cond_user.replace('rmg\\', '')
+    return cond_user
+
+
