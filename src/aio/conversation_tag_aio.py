@@ -11,9 +11,6 @@ from common import chatrmg_engine, create_alchemy_session, get_central_time
 from layout.chat_ui import gen_thumbs_btn_gradient
 from orm_models.checkpoint_app_info import CheckpointAppInfo
 
-#TODO: Add delete conversation/thread functionality - https://reference.langchain.com/python/langgraph/checkpoints/#langgraph.checkpoint.postgres.PostgresSaver.delete_thread
-#TODO: Add ability for user to see creation date
-
 class ConversationTagAIO(html.Div):
     
     class ids:

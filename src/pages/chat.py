@@ -72,8 +72,6 @@ conversation = html.Div(
     },
 )
 
-# name="TODO: REMOVE NAME"
-
 settings_offcanvas = generate_settings_offcanvas(
     settings_offcanvas_id="settings-offcanvas"
 )
@@ -213,11 +211,12 @@ def add_chat_card(n_clicks, user_prompt, chat_history,
         existing_conv_ids = [conv['props']['id'].replace('ConversationTagAIO','') for conv in conversations]
         if len(conversations) == 0 or conversation_id not in existing_conv_ids:
             #Add to db
+            user = determine_user(request)
             with create_alchemy_session(chatrmg_engine) as session:
                 app_info = CheckpointAppInfo(
                     thread_id=conversation_id,
                     thread_name=conversation_id,
-                    user_name='brocks', #TODO: Determine based on logged in user
+                    user_name=user,
                     created_on= dt.datetime.now()
                 )
                 session.add(app_info)
@@ -473,8 +472,9 @@ def toggle_settings_offcanvas(n, is_open):
         conv_div_content = None
         if not is_open:
             #Opening the offcanvas, so we need to update the conversation div
+            user = determine_user(request)
             with create_alchemy_session(chatrmg_engine) as session:
-                app_infos = session.query(CheckpointAppInfo).all() #TODO: Filter by logged in user
+                app_infos = session.query(CheckpointAppInfo).filter(CheckpointAppInfo.user_name == user).all()
                 conv_div_content = []
                 for app_info in app_infos:
                     conv_div_content.append(
