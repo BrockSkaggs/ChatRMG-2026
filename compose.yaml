@@ -1,31 +1,10 @@
 services:
-  web_chat:
-    image: chat_rmg_2026:latest
-    environment:
-      DB_HOSTNAME: ${DB_HOSTNAME}
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      USER_NAME: ${USER_NAME}
-      USER_PWD: ${USER_PWD}
-    ports:
-      - "8050:8050"
-      - "8051:8051"
-    command: ["python", "/code/src/dummy_app.py"]
-    volumes:
-      - ./:/code
-      #- C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/nike_data/chroma_db:/rag-data/chroma_db
-      - ${CHROMA_DATA_DIR}:/rag-data/chroma_db
-    depends_on:
-      - postgres
-      - ollama
-
   ollama:
     image: ollama/ollama:latest
     ports:
       - "11434:11434"
     volumes:
-      #- C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/ollama_data:/data
-      - ${OLLAMA_DATA_DIR}:/data
+      - ${OLLAMA_DATA_DIR}:/root/.ollama
     deploy:
       resources:
         reservations:
@@ -42,7 +21,6 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      #- C:/Users/brock/Documents/SKAGGS/Consulting/Tri-State/ChatRMG-LangGraph/pg_data:/var/lib/postgresql
       - ${POSTGRES_DATA_DIR}:/var/lib/postgresql
   pgadmin:
     image: dpage/pgadmin4:latest
