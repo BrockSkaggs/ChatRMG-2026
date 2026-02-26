@@ -16,7 +16,7 @@ server = Flask(__name__)
 
 dash_app = dash.Dash( 
     __name__,
-    use_pages=True,
+    use_pages=True, #Stalls here if requried services (postgres, ollama) are not up.
     server=server,
     external_stylesheets=[
         # dbc.themes.BOOTSTRAP,

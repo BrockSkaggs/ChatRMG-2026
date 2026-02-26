@@ -118,11 +118,15 @@ def generate_related_content_accordion(unique_docs, id="related-source-accordion
     related_content = []
     for related_doc in unique_docs:
         # make a markdown element and but the related_doc.page_content in it with an html.HR() below it
+        src = related_doc['metadata'].get('source', 'Unknown Source')
+        if src.startswith('\\\\spica.roadmastergroup.com\\'):
+            src = src.replace('\\\\spica.roadmastergroup.com\\', '')
+
         related_content.append(
             html.Div(
                 [
                     html.Hr(),
-                    html.Strong(f"Source: {related_doc['metadata'].get('source', 'Unknown Source')} Page: {related_doc['metadata'].get('page', 'N/A')}"),
+                    html.Strong(f"Source: {src} Page: {related_doc['metadata'].get('page', 'N/A')}"),
                     html.P(
                         related_doc['page_content'],
                         style={"margin-bottom": "0px"},

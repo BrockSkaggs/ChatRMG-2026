@@ -180,8 +180,6 @@ layout = dbc.Container(
     className="px-0",
 )
 
-
-
 # primary callback for on enter pressed, or submit button pressed creates the user message
 # and the empty AI response card for text to be streamed into, disables submit button and
 # updates the raw chat history
